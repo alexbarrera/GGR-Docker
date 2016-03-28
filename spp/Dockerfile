@@ -25,23 +25,22 @@ RUN curl -SLo ${DEST_DIR}/samtools-${SAMTOOLS_RELEASE}.tar.bz2 ${SAMTOOLS_URL}/$
 
 ENV SPP_VERSION=1.13
 
-COPY . /usr/local/src/rscripts
 WORKDIR /usr/local/src/rscripts
 
-# Download missing R packages
-RUN curl -SLo ./spp_${SPP_VERSION}.tar.gz https://github.com/hms-dbmi/spp/archive/${SPP_VERSION}.tar.gz
-RUN curl -SLo ./bitops_1.0-6.tar.gz https://cran.r-project.org/src/contrib/bitops_1.0-6.tar.gz
-RUN curl -SLo ./caTools_1.17.1.tar.gz https://cran.r-project.org/src/contrib/caTools_1.17.1.tar.gz
+COPY . /usr/local/src/rscripts
+RUN chmod +x run_spp.R
 
-# Install R packages
-RUN Rscript install_Rsamtools.R
-RUN R CMD INSTALL bitops_1.0-6.tar.gz
-RUN R CMD INSTALL caTools_1.17.1.tar.gz
-RUN R CMD INSTALL spp_${SPP_VERSION}.tar.gz
+# Download and install missing R packages; remove unnecessary files
+RUN Rscript install_Rsamtools.R && \
+    curl -SLo ./spp_${SPP_VERSION}.tar.gz https://github.com/hms-dbmi/spp/archive/${SPP_VERSION}.tar.gz && \
+    curl -SLo ./bitops_1.0-6.tar.gz https://cran.r-project.org/src/contrib/bitops_1.0-6.tar.gz && \
+    curl -SLo ./caTools_1.17.1.tar.gz https://cran.r-project.org/src/contrib/caTools_1.17.1.tar.gz && \
+    R CMD INSTALL bitops_1.0-6.tar.gz && \
+    R CMD INSTALL caTools_1.17.1.tar.gz && \
+    R CMD INSTALL spp_${SPP_VERSION}.tar.gz && \
+    rm -f ./spp_${SPP_VERSION}.tar.gz ./bitops_1.0-6.tar.gz ./caTools_1.17.1.tar.gz ./install_Rsamtools.R
 
-# Remove unnecessary files
-RUN rm -f ./spp_${SPP_VERSION}.tar.gz \
-    ./bitops_1.0-6.tar.gz \
-    ./caTools_1.17.1.tar.gz \
-    ./install_Rsamtools.R
-CMD ["Rscript", "run_spp.R"]
+
+# Add rscripts folder to PATH
+ENV PATH=/usr/local/src/rscripts:$PATH
+CMD ["run_spp.R"]
