@@ -7,4 +7,8 @@ fi
 
 reads_processed=$(grep 'reads processed' $1 | cut -f 4 -d ' ')
 reads_mapped=$(grep 'Reported' $1 | cut -f 2 -d ' ')
-echo -e $reads_processed"\t"$reads_mapped
+if grep -q "paired-end" $1; then
+    echo -e $(($reads_processed*2)) "\t" $(($reads_mapped*2))
+else
+    echo -e $reads_processed"\t"$reads_mapped
+fi
