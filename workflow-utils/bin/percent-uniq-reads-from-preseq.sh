@@ -5,7 +5,7 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
-total='15000000'
+total='10000000'
 distinct=$(grep $total $1 | cut -f 2 | awk '{ print +$1 }' )
 if [[ $distinct =~ ^\ *$ ]]; then
     perc_distinct="NA"
