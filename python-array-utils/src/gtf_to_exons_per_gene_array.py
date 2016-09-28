@@ -53,7 +53,7 @@ if __name__ == "__main__":
     genes = subset_featuretypes(genome_gtf, featuretype_filter, 'gene')
 
     # print header
-    print '\t'.join(['chr', 'strand', 'gene', 'exons'])
+    print '\t'.join(['#chrom', 'strand', 'gene', 'exons'])
 
     pool = Pool(nprocs)
 
