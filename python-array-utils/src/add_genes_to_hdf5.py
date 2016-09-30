@@ -9,6 +9,7 @@ parser.add_argument('outFileName', type=str, help='Output filename')
 parser.add_argument('--gene-names', type=file, help='Genes file, with one gene per line')
 parser.add_argument('--genes-bedfile', type=file, help='Genes file, with one gene per line')
 parser.add_argument('--gene-name-max-len', type=int, default=20, help='Genes file, with one gene per line')
+parser.add_argument('--resolutions', type=int, nargs='+', help='Genes file, with one gene per line')
 
 args = parser.parse_args()
 
@@ -29,4 +30,5 @@ f.copy('reads', fd)
 f.close()
 
 fd.create_dataset('genes', genes.shape, data=genes, dtype=np_str, compression='gzip', compression_opts=9)
+fd.create_dataset('resolutions', (len(args.resolutions),), data=np.array(args.resolutions), dtype=int)
 fd.close()
