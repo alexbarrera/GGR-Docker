@@ -9,7 +9,7 @@ parser.add_argument('outFileName', type=str, help='Output filename')
 parser.add_argument('--gene-names', type=file, help='Genes file, with one gene per line')
 parser.add_argument('--genes-bedfile', type=file, help='Genes file, with one gene per line')
 parser.add_argument('--gene-name-max-len', type=int, default=20, help='Genes file, with one gene per line')
-parser.add_argument('--resolutions', type=int, nargs='+', help='Genes file, with one gene per line')
+parser.add_argument('--resolutions', type=int, nargs='+', help='List of resolutions')
 
 args = parser.parse_args()
 
