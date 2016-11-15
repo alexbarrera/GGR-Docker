@@ -1,8 +1,11 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
-import sys
+import argparse
+import operator
+from collections import defaultdict as dd
+
 import pybedtools as pybd
-from multiprocessing import Pool
 
 
 def featuretype_filter(feature, featuretype):
@@ -13,52 +16,46 @@ def featuretype_filter(feature, featuretype):
 
 def subset_featuretypes(target, feature_fn, featuretype):
     result = target.filter(feature_fn, featuretype).saveas()
-    return pybd.BedTool(result.fn)
+    return pybd.BedTool(result.fn).sort().remove_invalid()
 
 
-def gene_filter(feature, genename):
-    if feature.attrs['gene_id'] == genename:
-        return True
-    return False
+def print_out_exons(genes_list):
+    for gid, g in sorted(genes_list.iteritems(), key=operator.itemgetter(0)):
+        print(g[0]['chrom'],
+              g[0]['strand'],
+              gid,
+              [[int(ee[1]), int(ee[2])] for ee in pybd.BedTool(g).merge(s=True, stream=True)],
+              sep='\t')
+    return
 
 
-def exons_txt(interval):
-    target = genome_gtf
-    gene_id = interval.attrs['gene_id']
-    gene_name = interval.attrs['gene_name']
-    fields = [interval.chrom, interval.strand]
-    fields += ["%s(%s)" % (gene_name, gene_id)]
-    g = pybd.BedTool(str(interval), from_string=True).saveas()
-    feats_in_gene = genome_gtf.intersect(g, s=True)
-    gene_exons = subset_featuretypes(feats_in_gene, featuretype_filter, 'exon') \
-        .merge(s=True) \
-        .remove_invalid()
-    aux = [[tt.start, tt.end] for tt in gene_exons]
-    fields += [repr(aux)]
-    return '\t'.join(fields)
+parser = argparse.ArgumentParser(description='GTF to genes with list of exons tab-delimited file')
+parser.add_argument('ifile', type=file, help='GTF input file')
+parser.add_argument('--tmp-prefix', type=str, default='pybedtools.', help='Prefix used for tmp files')
 
+args = parser.parse_args()
 
-if __name__ == "__main__":
+pybd.settings.tempfile_prefix = args.tmp_prefix  # '/data/reddylab/Alex/tmp/pybedtools.'
+ifile = args.ifile  # sys.argv[1]
+genome_gtf = pybd.BedTool(ifile).sort().remove_invalid()
 
-    ifile = sys.argv[1]
-    try:
-        nprocs = int(sys.argv[2])
-    except IndexError:
-        nprocs = 1
+exons = subset_featuretypes(genome_gtf, featuretype_filter, 'exon')
+last_gene_id = None
+fields = None
+aux = []
+genes_list = dd(list)
+last_chrom = None
+for e in exons:
+    if last_chrom and last_chrom != e.chrom:
+        print_out_exons(genes_list)
+        last_chrom = e.chrom
+        genes_list = dd(list)
 
-    genome_gtf = pybd.BedTool(ifile) \
-        .sort() \
-        .remove_invalid() \
-        .saveas()
-    genes = subset_featuretypes(genome_gtf, featuretype_filter, 'gene')
-
-    # print header
-    print '\t'.join(['#chrom', 'strand', 'gene', 'exons'])
-
-    pool = Pool(nprocs)
-
-    ll = pool.map(exons_txt, [g for g in genes])
-
-    for l in ll:
-        sys.stdout.write(l)
-        sys.stdout.write('\n')
+    gene_id = e.attrs['gene_id']
+    gene_name = e.attrs['gene_name']
+    gene_key = "%s(%s)" % (gene_name, gene_id)
+    genes_list[gene_key].append(e)
+    last_chrom = e.chrom
+if last_chrom:
+    print('#Printing exons for chromosome:', last_chrom)
+    print_out_exons(genes_list)
